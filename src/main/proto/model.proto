@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package com.baidu.acg.pie;
+
+
+message InitRequest {
+    // 以下是认证相关的内容
+    string session_id = 1;
+    string session_token = 2;
+}
+
+message RtcConnection {
+    string rtc_server_url = 1;
+    string app_id = 2;
+    string room_name = 3;
+    string client_id = 4;
+    string client_token = 5;
+    string feed_id = 6;
+}
+
+message InitResponse {
+
+    int32 error_code = 1;
+    // detail error message
+    string error_message = 2;
+
+    RtcConnection rtc_connection = 3;
+}
+
+message BaseRequest {
+    // 上行消息的序列号， 从0开始自增
+    uint64 sequence_num = 1;
+    // 发送消息的时间戳
+    uint64 send_timestamp = 2;
+}
+
+message AudioFragment {
+    BaseRequest base_request = 1;
+    // pcm or wav format audio data
+    bytes audio_data = 2;
+}
+
+message TextFragment {
+    BaseRequest base_request = 1;
+    // plain or DRML format text content
+    string content = 2;
+}
+
+message BaseResponse {
+    // 0 for success, others fail
+    int32 error_code = 1;
+    // detail error message
+    string error_message = 2;
+    // ack for related upstream request
+    uint64 ack = 3;
+}
+
+service DHService {
+    // 输入音频流， 通过音频数据驱动数字人像
+    rpc sendAudio (stream AudioFragment) returns (stream BaseResponse);
+    // 输入文本流， 平台通过百度的tts服务转成音频驱动数字人
+    rpc sendText (stream TextFragment) returns (stream BaseResponse);
+}
+
+
