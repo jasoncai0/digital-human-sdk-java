@@ -8,17 +8,20 @@ import lombok.NonNull;
 /**
  * AudioRequest
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-30
  */
 @Data
-@Builder
-public class AudioRequest {
+public class AudioRequest extends BaseRequest {
 
+    /**
+     * todo audio stream request
+     */
     @NonNull
     byte[] audioData;
-    /**
-     * 请求编号，请求编号允许为空，当请求编号为空时，客户端会自动填充自增的Id。
-     */
-    private Long seqNumber;
+
+    @Builder
+    public AudioRequest(Long seqNumber, @NonNull byte[] audioData) {
+        super(seqNumber);
+        this.audioData = audioData;
+    }
 }

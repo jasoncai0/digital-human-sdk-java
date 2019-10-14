@@ -7,7 +7,6 @@ import lombok.Data;
 /**
  * Response
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-30
  */
 @Data

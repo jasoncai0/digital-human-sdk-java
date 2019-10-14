@@ -1,6 +1,12 @@
 // Copyright (C) 2019 Baidu Inc. All rights reserved.
 package com.baidu.acg.pie.digitalhuman.client.sample;
 
+import io.grpc.internal.IoUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.concurrent.CountDownLatch;
+
 import com.baidu.acg.pie.digitalhuman.client.DhClient;
 import com.baidu.acg.pie.digitalhuman.client.DhClientImpl;
 import com.baidu.acg.pie.digitalhuman.client.DhConsumer;
@@ -12,15 +18,10 @@ import com.baidu.acg.pie.digitalhuman.client.model.SessionResult;
 import com.baidu.acg.pie.digitalhuman.client.model.request.AudioRequest;
 import com.baidu.acg.pie.digitalhuman.client.model.request.TextRequest;
 import com.baidu.acg.pie.digitalhuman.client.model.response.DhResponse;
-import io.grpc.internal.IoUtils;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.concurrent.CountDownLatch;
 
 /**
  * SimpleSendSample
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-31
  */
 public class SimpleSendSample {
@@ -29,12 +30,12 @@ public class SimpleSendSample {
         return new DhClientImpl(
                 ClientConfig.builder()
                         // user and app credential
-                        .userName("test111").appName("appteset")
+                        .appId("dummy")
+                        .appKey("dummy")
                         // server for grpc
-                        .serverHost("localhost").serverPort(8090)
+                        .serverHost("1.2.3.4").serverPort(8090)
                         // server for http request
-                        .httpHost("localhost").httpPort(8080)
-
+                        .httpHost("1.2.3.4").httpPort(8080)
                         .build());
     }
 
@@ -50,11 +51,18 @@ public class SimpleSendSample {
         // 申请会话信息，后续使用申请得到的会话信息进行进一步的grpc请求
         SessionResult acquire = client.acquire();
         System.out.println("acquire success" + acquire);
+        try {
+            for (int i = 1; i <= 10; i++) {
+                DhResponse result =
+                        client.sendSync(buildTextRequest(i));
+                System.out.println(result);
+            }
 
-        for (int i = 1; i <= 10; i++) {
-            DhResponse result =
-                    client.sendSync(buildTextRequest(i));
-            System.out.println(result);
+        } finally {
+            //对于申请得到的会话，并不会在连接断连时释放，只有在client主动的release，才会将申请得到的会话资源释放。
+            System.out.println("release session");
+            client.shutdown();
+            client.release();
         }
 
     }
@@ -74,6 +82,8 @@ public class SimpleSendSample {
                     client.sendSync(buildTextRequest(i));
             System.out.println(result);
         }
+        client.shutdown();
+        client.release();
     }
 
 
@@ -84,47 +94,55 @@ public class SimpleSendSample {
         DhClient client = createClient();
         // acquire session credential
         client.acquire();
-        CountDownLatch latch = new CountDownLatch(10);
-        DhStream<TextRequest> stream = client.textStream(new DhConsumer() {
-            @Override
-            public void onResponse(DhResponse response) {
-                System.out.println("rcv response " + response.getSeqNumber() + " msg" + response);
-                latch.countDown();
-            }
-
-            @Override
-            public void onError(DigitalHumanException t) {
-                System.out.println("err occur ," + t.getErrorMessage());
-            }
-
-            @Override
-            public void onCompleted() {
-                System.out.println("connection complete by remote");
-            }
-        });
-        // 发送并等待服务端的响应
-        for (int i = 1; i <= 10; i++) {
-            System.out.println("send msg: " + i);
-            stream.send(buildTextRequest(i));
-        }
         try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            CountDownLatch latch = new CountDownLatch(10);
+            DhStream<TextRequest> stream = client.textStream(new DhConsumer() {
+                @Override
+                public void onResponse(DhResponse response) {
+                    System.out.println("rcv response " + response.getSeqNumber() + " msg" + response);
+                    latch.countDown();
+                }
+
+                @Override
+                public void onError(DigitalHumanException t) {
+                    System.out.println("err occur ," + t.getErrorMessage());
+                }
+
+                @Override
+                public void onCompleted() {
+                    System.out.println("connection complete by remote");
+                }
+            });
+            // 发送并等待服务端的响应
+            for (int i = 1; i <= 10; i++) {
+                System.out.println("send msg: " + i);
+                stream.send(buildTextRequest(i));
+            }
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        } finally {
+            client.shutdown();
+            client.release();
         }
     }
 
 
     public static void sendAudioSync() {
+        DhClient client = createClient();
+        System.out.println(client.acquire());
         try {
-            DhClient client = createClient();
-            client.acquire();
             for (int i = 1; i <= 10; i++) {
                 DhResponse result = client.sendSync(buildAudioRequest());
                 System.out.println("send  " + i + " and rcv " + result);
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            System.out.println("release");
+            client.release();
         }
     }
 
@@ -132,41 +150,99 @@ public class SimpleSendSample {
     public static void sendAudioByStream() {
         DhClient client = createClient();
         client.acquire();
-        CountDownLatch latch = new CountDownLatch(10);
-        DhStream<AudioRequest> stream = client.audioStream(new DhConsumer() {
-            @Override
-            public void onResponse(DhResponse response) {
-                System.out.println("rcv audio response " + response.getSeqNumber());
-                latch.countDown();
-            }
+        try {
+            CountDownLatch latch = new CountDownLatch(10);
+            DhStream<AudioRequest> stream = client.audioStream(new DhConsumer() {
+                @Override
+                public void onResponse(DhResponse response) {
+                    System.out.println("rcv audio response " + response.getSeqNumber());
+                    latch.countDown();
+                }
 
-            @Override
-            public void onError(DigitalHumanException e) {
+                @Override
+                public void onError(DigitalHumanException e) {
+                    e.printStackTrace();
+                }
+
+                @Override
+                public void onCompleted() {
+                    System.out.println("connection close by remote ");
+                }
+            });
+            try {
+                for (int i = 1; i <= 10; i++) {
+                    stream.send(buildAudioRequest());
+                }
+            } catch (Exception e) {
                 e.printStackTrace();
             }
-
-            @Override
-            public void onCompleted() {
-                System.out.println("connection close by remote ");
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        });
-        try {
-            for (int i = 1; i <= 10; i++) {
-                stream.send(buildAudioRequest());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } finally {
+            client.release();
         }
+    }
+
+
+    public static void sendAudioPCM() {
+        DhClient client = createClient();
+        SessionResult result = client.acquire();
+        System.out.println(result);
         try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            CountDownLatch latch = new CountDownLatch(10);
+            DhStream<AudioRequest> stream = client.audioStream(new DhConsumer() {
+                @Override
+                public void onResponse(DhResponse response) {
+                    System.out.println("rcv audio response " + response.getSeqNumber());
+                    latch.countDown();
+                }
+
+                @Override
+                public void onError(DigitalHumanException e) {
+                    e.printStackTrace();
+                }
+
+                @Override
+                public void onCompleted() {
+                    System.out.println("connection close by remote ");
+                }
+            });
+            try {
+                for (int i = 1; i <= 10; i++) {
+                    stream.send(buildPCMAudioRequest());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        } finally {
+            client.release();
         }
     }
 
     private static AudioRequest buildAudioRequest() throws IOException {
         InputStream audio = SimpleSendSample.class.getClassLoader().getResourceAsStream("test.wav");
         return AudioRequest.builder().audioData(IoUtils.toByteArray(audio)).build();
+    }
+
+    private static AudioRequest buildPCMAudioRequest() throws IOException {
+        InputStream audio = SimpleSendSample.class.getClassLoader().getResourceAsStream("test.wav");
+
+        byte[] audioBytes = IoUtils.toByteArray(audio);
+
+        byte[] bytesWithoutHeader = new byte[audioBytes.length - 44];
+
+
+        System.arraycopy(audioBytes, 44, bytesWithoutHeader, 0, audioBytes.length - 44);
+        return AudioRequest.builder().audioData(bytesWithoutHeader).build();
+
     }
 
 
@@ -176,10 +252,13 @@ public class SimpleSendSample {
 
 
     public static void main(String[] args) {
-        simpleAcquireAndSendTextSync();
-        sendTextWithExistedMetaSync();
-        sendTextByStream();
-        sendAudioSync();
-        sendAudioByStream();
+//        simpleAcquireAndSendTextSync();
+//        sendTextWithExistedMetaSync();
+//        sendTextByStream();
+//        sendAudioSync();
+//        sendAudioByStream();
+//
+        sendAudioPCM();
+
     }
 }

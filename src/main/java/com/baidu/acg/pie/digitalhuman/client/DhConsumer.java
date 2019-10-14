@@ -7,7 +7,6 @@ import com.baidu.acg.pie.digitalhuman.client.model.response.DhResponse;
 /**
  * DhConsumer
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-31
  */
 public interface DhConsumer {

@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 /**
  * SessionResult
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-31
  */
 @Data

@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
  * RtcConnection
  * Rtc连接信息用于连接BRTC(百度云webRtc)，拉取数字人的视频流。
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-31
  */
 @Data

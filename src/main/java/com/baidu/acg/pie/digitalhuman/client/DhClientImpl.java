@@ -1,6 +1,14 @@
 // Copyright (C) 2019 Baidu Inc. All rights reserved.
 package com.baidu.acg.pie.digitalhuman.client;
 
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 import com.baidu.acg.pie.digitalhuman.client.config.ClientConfig;
 import com.baidu.acg.pie.digitalhuman.client.core.GrpcSender;
 import com.baidu.acg.pie.digitalhuman.client.core.SessionMeta;
@@ -10,16 +18,10 @@ import com.baidu.acg.pie.digitalhuman.client.model.SessionResult;
 import com.baidu.acg.pie.digitalhuman.client.model.request.AudioRequest;
 import com.baidu.acg.pie.digitalhuman.client.model.request.TextRequest;
 import com.baidu.acg.pie.digitalhuman.client.model.response.DhResponse;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import java.util.concurrent.TimeUnit;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * DHClient
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-29
  */
 @Slf4j
@@ -67,6 +69,11 @@ public class DhClientImpl implements DhClient {
     }
 
     @Override
+    public void release() throws DigitalHumanException {
+        this.release(this.sender.getSessionMeta().getSessionId());
+    }
+
+    @Override
     public void register(SessionMeta sessionMeta) throws DigitalHumanException {
         this.sender.setSessionMeta(sessionMeta);
     }
@@ -79,6 +86,16 @@ public class DhClientImpl implements DhClient {
     @Override
     public DhResponse sendSync(TextRequest request) throws DigitalHumanException {
         return this.sender.sendTextSync(request);
+    }
+
+    @Override
+    public CompletableFuture<DhResponse> send(AudioRequest request) throws DigitalHumanException {
+        return this.sender.send(request);
+    }
+
+    @Override
+    public CompletableFuture<DhResponse> send(TextRequest request) throws DigitalHumanException {
+        return this.sender.send(request);
     }
 
     @Override

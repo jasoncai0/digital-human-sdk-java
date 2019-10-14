@@ -1,6 +1,8 @@
 // Copyright (C) 2019 Baidu Inc. All rights reserved.
 package com.baidu.acg.pie.digitalhuman.client;
 
+import java.util.concurrent.Future;
+
 import com.baidu.acg.pie.digitalhuman.client.core.SessionMeta;
 import com.baidu.acg.pie.digitalhuman.client.exception.DigitalHumanException;
 import com.baidu.acg.pie.digitalhuman.client.model.SessionResult;
@@ -11,7 +13,6 @@ import com.baidu.acg.pie.digitalhuman.client.model.response.DhResponse;
 /**
  * DigitalHumanClient
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-30
  */
 public interface DhClient {
@@ -19,12 +20,28 @@ public interface DhClient {
     /**
      * 申请会话资源，用于后续的驱动数字人的grpc连接认证和连接BRTC拉取视频流。
      * 使用sdk申请得到会话资源后，会自动调用{@link #register(SessionMeta)}，将申请得到的会话信息进行注册， 用户后续的grpc请求。
-     * 当然用户也可以主动调用register
+     * 当然用户也可以主动调用register,
+     * 会话一旦被申请成功，云端会消耗对应的资源用于渲染成像，包括空闲时的动作，此时在Rtc房间中能够看到数字人画面。
+     * 如果该会话不需要使用， 那么请及时释放资源{@link #release()} ，不然可能产生额外的收费。
      *
      * @return 会话资源信息，其中sessionId和sessionToken，用于grpc认证；rtcConnection用于连接BRTC认证
      * @throws DigitalHumanException
      */
     SessionResult acquire() throws DigitalHumanException;
+
+    /**
+     * 关闭和释放会话资源，
+     *
+     * @param sessionId 会话ID
+     * @throws DigitalHumanException
+     */
+    void release(String sessionId) throws DigitalHumanException;
+
+    /**
+     * release the registered/acquired sessionId
+     */
+    void release() throws DigitalHumanException;
+
 
     /**
      * 查询申请得到的会话内容
@@ -35,13 +52,7 @@ public interface DhClient {
      */
     SessionResult query(String sessionId) throws DigitalHumanException;
 
-    /**
-     * 关闭和释放会话资源
-     *
-     * @param sessionId 会话ID
-     * @throws DigitalHumanException
-     */
-    void release(String sessionId) throws DigitalHumanException;
+
 
     /**
      * 注册会话认证信息，用于后续的grpc请求。
@@ -51,6 +62,7 @@ public interface DhClient {
      * @throws DigitalHumanException
      */
     void register(SessionMeta sessionMeta) throws DigitalHumanException;
+
 
     /**
      * 发送音频请求，并同步等待响应结果。
@@ -67,6 +79,22 @@ public interface DhClient {
      * @return 数字人ACK消息
      */
     DhResponse sendSync(TextRequest request) throws DigitalHumanException;
+
+    /**
+     * 与{@link this#send(TextRequest)}一样，发送消息后，异步响应。
+     *
+     * @param request 音频信息
+     * @return future
+     */
+    Future<DhResponse> send(AudioRequest request) throws DigitalHumanException;
+
+    /**
+     * 该接口和{@link this#send(AudioRequest)}一致，渲染的是文本信息，异步响应。
+     *
+     * @param request 文本信息
+     */
+    Future<DhResponse> send(TextRequest request) throws DigitalHumanException;
+
 
     /**
      * 流式发送音频请求，异步发送，不会阻塞线程，通过consumer处理返回结果
