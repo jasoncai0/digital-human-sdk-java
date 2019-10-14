@@ -8,19 +8,18 @@ import lombok.NonNull;
 /**
  * TextRequest
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-30
  */
 @Data
-@Builder
-public class TextRequest {
-
-    /**
-     * 请求编号，请求编号允许为空，当请求编号为空时，客户端会自动填充自增的Id。
-     */
-    private Long seqNumber;
+public class TextRequest extends BaseRequest {
 
     @NonNull
     private String text;
+
+    @Builder
+    public TextRequest(Long seqNumber, @NonNull String text) {
+        super(seqNumber);
+        this.text = text;
+    }
 
 }

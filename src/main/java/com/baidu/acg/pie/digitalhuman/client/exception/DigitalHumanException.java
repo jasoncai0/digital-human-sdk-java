@@ -6,30 +6,47 @@ import lombok.Data;
 /**
  * DigitalHumanClientException
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-30
  */
 @Data
 public class DigitalHumanException extends RuntimeException {
 
-    private int error;
+    private int errorCode;
 
     private String errorMessage;
 
 
-    public DigitalHumanException(int code, String message) {
+    private DigitalHumanException(int code, String message) {
         super(message);
-        this.error = code;
+        this.errorCode = code;
         this.errorMessage = message;
+    }
+
+    private DigitalHumanException(int code, String message, Throwable cause) {
+        super(message, cause);
+        this.errorCode = code;
+        this.errorMessage = message;
+    }
+
+
+    public static DigitalHumanException fail(String message) {
+        return fail(-1, message);
     }
 
     public static DigitalHumanException fail(int code, String errorMessage) {
         return new DigitalHumanException(code, errorMessage);
     }
 
-    public static DigitalHumanException fail(Throwable t) {
-        return new DigitalHumanException(Error.EXECUTION.getErrorCode(), t.getMessage());
+    public static DigitalHumanException fail(int code, String message, Throwable throwable) {
+        return new DigitalHumanException(code, message, throwable);
     }
 
+    public static DigitalHumanException fail(Throwable t) {
+        return new DigitalHumanException(-1, t.getMessage(), t);
+    }
+
+    public static DigitalHumanException fail(String message, Throwable t) {
+        return new DigitalHumanException(-1, message, t);
+    }
 
 }

@@ -1,14 +1,14 @@
 // Copyright (C) 2019 Baidu Inc. All rights reserved.
 package com.baidu.acg.pie.digitalhuman.client.config;
 
-import java.util.concurrent.TimeUnit;
 import lombok.Builder;
 import lombok.Data;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * ChannelConfig
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-31
  */
 @Data
@@ -22,7 +22,7 @@ public class ChannelConfig {
     private long keepAliveTime = 3;
 
     @Builder.Default
-    private long keepAliveTimeout = 20;
+    private long keepAliveTimeout = 40;
 
     @Builder.Default
     private TimeUnit timeUnit = TimeUnit.MINUTES;
@@ -41,4 +41,5 @@ public class ChannelConfig {
 
     @Builder.Default
     private int syncMaxInflight = 10000;
+
 }

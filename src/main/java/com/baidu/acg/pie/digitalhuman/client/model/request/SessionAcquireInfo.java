@@ -9,7 +9,6 @@ import lombok.Data;
 /**
  * SessionAcquireInfo
  *
- * @author Cai Zhensheng(caizhensheng@baidu.com)
  * @since 2019-08-31
  */
 @Data
@@ -17,7 +16,7 @@ import lombok.Data;
 @JsonNaming(value = PropertyNamingStrategy.SnakeCaseStrategy.class)
 public class SessionAcquireInfo {
 
-    private String userName;
+    private String signature;
 
     private String expireTime;
 
